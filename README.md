@@ -167,6 +167,12 @@ Minimum value for the `opts.opslimit` option.
 npm install secure-password
 ```
 
+## Credits
+
+I want to thank [Tom Streller](https://github.com/scan) for donating the package
+name on npm. The `<1.0.0` versions that he had written and published to npm can
+still be downloaded and the source is available in his [`scan/secure-password` repository](https://github.com/scan/secure-password)
+
 ## License
 
 [ISC](LICENSE.md)
