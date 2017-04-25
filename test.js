@@ -51,7 +51,7 @@ test('Needs rehash', function (assert) {
     opslimit: 4
   })
 
-  assert.ok(betterPwd.verifySync(userPassword, weakHash) === securePassword.NEEDS_REHASH, 'should still verify but needs rehash')
+  assert.ok(betterPwd.verifySync(userPassword, weakHash) === securePassword.VALID_NEEDS_REHASH, 'should still verify but needs rehash')
 
   var betterHash = betterPwd.hashSync(userPassword)
   assert.ok(betterPwd.verifySync(userPassword, betterHash) === securePassword.VALID, 'valid but does not need rehash (up-to-date)')

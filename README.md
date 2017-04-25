@@ -25,7 +25,8 @@ pwd.hash(userPassword, function (err, hash) {
     if (err) return console.error('Try again later')
     if (result === securePassword.VALID) return console.log('Yay you made it')
     if (result === securePassword.INVALID) return console.log('Imma call the cops')
-    if (result === securePassword.NEEDS_REHASH) {
+    if (result === securePassword.VALID) return console.log('Yay you made it')
+    if (result === securePassword.VALID_NEEDS_REHASH) {
       console.log('Yay you made it, wait for us to improve your safety')
 
       pwd.hash(userPassword, function (err, improvedHash) {
@@ -115,7 +116,7 @@ The password was verified and is valid
 
 The password was invalid
 
-### `SecurePassword.NEEDS_REHASH`
+### `SecurePassword.VALID_NEEDS_REHASH`
 
 The password was verified and is valid, but needs to be rehashed with new
 parameters
