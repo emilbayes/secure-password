@@ -8,22 +8,18 @@
 var securePassword = require('secure-password')
 
 // Initialise our password policy
-var pwd = securePassword({
-  memlimit: securePassword.MEMLIMIT_DEFAULT,
-  opslimit: securePassword.OPSLIMIT_DEFAULT
-})
+var pwd = securePassword()
 
 var userPassword = Buffer.from('my secret password')
 
 // Register user
 pwd.hash(userPassword, function (err, hash) {
-  if (err) return console.error('Try again later')
+  if (err) throw err
 
   // Save hash somewhere
-
   pwd.verify(userPassword, hash, function (err, result) {
-    if (err) return console.error('Try again later')
-    if (result === securePassword.VALID) return console.log('Yay you made it')
+    if (err) throw err
+
     if (result === securePassword.INVALID) return console.log('Imma call the cops')
     if (result === securePassword.VALID) return console.log('Yay you made it')
     if (result === securePassword.VALID_NEEDS_REHASH) {
@@ -45,8 +41,18 @@ pwd.hash(userPassword, function (err, hash) {
 
 Make a new instance of `SecurePassword` which will contain your settings. You
 can view this as a password policy for your application. `opts` currently takes
-two keys `opts.memlimit` and `opts.opslimit`. They're both constrained by the
-constants `SecurePassword.MEMLIMIT_MIN` - `SecurePassword.MEMLIMIT_MAX` and
+two keys `opts.memlimit` and `opts.opslimit`.
+
+```js
+// Initialise our password policy (these are the defaults)
+var pwd = securePassword({
+  memlimit: securePassword.MEMLIMIT_DEFAULT,
+  opslimit: securePassword.OPSLIMIT_DEFAULT
+})
+```
+
+They're both constrained by the constants `SecurePassword.MEMLIMIT_MIN` -
+ `SecurePassword.MEMLIMIT_MAX` and
 `SecurePassword.OPSLIMIT_MIN` - `SecurePassword.OPSLIMIT_MAX`. If not provided
 they will be given the default values `SecurePassword.MEMLIMIT_DEFAULT` and
 `SecurePassword.OPSLIMIT_DEFAULT` which should be fast enough for a general
@@ -88,7 +94,7 @@ Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done by a seperate worker as to not block the
 event loop, so normal execution and I/O can continue.
 The callback is invoked with a potential error, or one of the enums
-`SecurePassword.VALID`, `SecurePassword.INVALID` or `SecurePassword.NEEDS_REHASH`.
+`SecurePassword.INVALID`, `SecurePassword.VALID` or `SecurePassword.NEEDS_REHASH`.
 Check with strict equality for one the cases as in the example above.
 
 If `enum === SecurePassword.NEEDS_REHASH` you should call `pwd.hash` with
@@ -157,10 +163,6 @@ Default value for the `opts.memlimit` option.
 ### `SecurePassword.OPSLIMIT_DEFAULT`
 
 Minimum value for the `opts.opslimit` option.
-
-## TODO
-
-- [ ] Implement rehash checking
 
 ## Install
 
