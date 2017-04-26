@@ -74,7 +74,16 @@ SecurePassword.prototype.verifySync = function (passwordBuf, hashBuf) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
-  return sodium.crypto_pwhash_str_verify(hashBuf, passwordBuf) ? SecurePassword.VALID : SecurePassword.INVALID
+  if (sodium.crypto_pwhash_str_verify(hashBuf, passwordBuf) === false) {
+    return SecurePassword.INVALID
+  }
+
+  var parameters = decodeArgon2iStr(hashBuf)
+  if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
+    return SecurePassword.VALID_NEEDS_REHASH
+  }
+
+  return SecurePassword.VALID
 }
 
 SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
@@ -89,6 +98,57 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
   sodium.crypto_pwhash_str_verify_async(hashBuf, passwordBuf, function (err, bool) {
     if (err) return cb(err)
 
-    return cb(null, bool ? SecurePassword.VALID : SecurePassword.INVALID)
-  })
+    if (bool === false) return cb(null, SecurePassword.INVALID)
+
+    var parameters = decodeArgon2iStr(hashBuf)
+    if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
+      return cb(null, SecurePassword.VALID_NEEDS_REHASH)
+    }
+
+    return cb(null, SecurePassword.VALID)
+  }.bind(this))
+}
+
+function decodeArgon2iStr (hash) {
+  assert(Buffer.isBuffer(hash), 'Hash must be Buffer')
+  var idx = 0
+
+  var type = ''
+  var version = -1
+  var memory = -1
+  var time = -1
+  // var lanes = -1
+  // var threads = lanes
+  // var salt = Buffer.allocUnsafe(sodium.crypto_pwhash_SALTBYTES)
+  // var out = Buffer.allocUnsafe(32) // STR_HASHBYTES
+
+  assert(Buffer.from('$argon2i').compare(hash, idx, idx += 8) === 0, 'Hash is missing type')
+  type = 'argon2i'
+
+  assert(Buffer.from('$v=').compare(hash, idx, idx += 3) === 0, 'Hash is missing version')
+  version = parseInt(hash.slice(idx, idx = hash.indexOf('$', idx)), 10)
+  assert(Number.isSafeInteger(version) && version > 0, 'Hash has invalid version')
+
+  assert(Buffer.from('$m=').compare(hash, idx, idx += 3) === 0, 'Hash is missing memory cost')
+  memory = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
+  assert(Number.isSafeInteger(memory) && memory > 0, 'Hash has invalid memory cost')
+
+  assert(Buffer.from(',t=').compare(hash, idx, idx += 3) === 0, 'Hash is missing time cost')
+  time = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
+  assert(Number.isSafeInteger(time) && time > 0, 'Hash has invalid time cost')
+
+  // assert(Buffer.from(',p=').compare(hash, idx, idx += 3) === 0, 'Hash is missing lanes')
+  // lanes = parseInt(hash.slice(idx, idx = hash.indexOf('$', idx)), 10)
+  // threads = lanes
+  // idx++
+  // assert(hash.indexOf('$', idx + 1) - idx === Math.ceil(salt.length * 8 / 6), 'Hash is containing salt of incorrect length')
+  // // Needs to figure out how to read base64 block by block
+  // salt.write(hash.slice(idx, idx = hash.indexOf('$', idx)), 0, 'base64')
+
+  return {
+    memlimit: memory << 10,
+    opslimit: time,
+    algo: type,
+    version: version
+  }
 }
