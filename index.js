@@ -15,9 +15,9 @@ SecurePassword.OPSLIMIT_MAX = sodium.crypto_pwhash_OPSLIMIT_MAX
 SecurePassword.MEMLIMIT_DEFAULT = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE
 SecurePassword.OPSLIMIT_DEFAULT = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
 
-SecurePassword.VALID = 0
-SecurePassword.INVALID = -1
-SecurePassword.VALID_NEEDS_REHASH = -2
+SecurePassword.INVALID = 0
+SecurePassword.VALID = 1
+SecurePassword.VALID_NEEDS_REHASH = 2
 
 function SecurePassword (opts) {
   if (!(this instanceof SecurePassword)) return new SecurePassword(opts)
