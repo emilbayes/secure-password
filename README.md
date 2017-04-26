@@ -1,6 +1,6 @@
 # `secure-password`
 
-[![Build Status](https://travis-ci.org/emilbayes/secure-password.svg?branch=master)](https://travis-ci.org/eemilbayes/secure-password)
+[![Build Status](https://travis-ci.org/emilbayes/secure-password.svg?branch=master)](https://travis-ci.org/emilbayes/secure-password)
 
 > Making Password storage safer for all
 
