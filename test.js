@@ -4,8 +4,8 @@ var securePassword = require('.')
 test('Can hash password sync', function (assert) {
   var pwd = securePassword({
     version: 0,
-    memlimit: securePassword.MEMLIMIT_INTERACTIVE,
-    opslimit: securePassword.OPSLIMIT_INTERACTIVE
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
   })
 
   var userPassword = Buffer.from('my secrets')
@@ -18,8 +18,8 @@ test('Can hash password sync', function (assert) {
 test('Can hash password async', function (assert) {
   var pwd = securePassword({
     version: 0,
-    memlimit: securePassword.MEMLIMIT_INTERACTIVE,
-    opslimit: securePassword.OPSLIMIT_INTERACTIVE
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
   })
 
   var userPassword = Buffer.from('my secrets')
@@ -35,8 +35,8 @@ test('Can hash password async simultanious', function (assert) {
   assert.plan(4)
   var pwd = securePassword({
     version: 0,
-    memlimit: securePassword.MEMLIMIT_INTERACTIVE,
-    opslimit: securePassword.OPSLIMIT_INTERACTIVE
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
   })
 
   var userPassword = Buffer.from('my secrets')
