@@ -4,6 +4,13 @@
 
 > Making Password storage safer for all
 
+## Features
+
+- State of the art password hashing algorithm (Argon2i)
+- Safe defaults for most applications
+- Future-proof so work factors and hashing algorithms can be easily upgraded
+- `Buffers` everywhere for safer memory management
+
 ## Usage
 
 ```js
@@ -22,6 +29,7 @@ pwd.hash(userPassword, function (err, hash) {
   pwd.verify(userPassword, hash, function (err, result) {
     if (err) throw err
 
+    if (result === securePassword.INVALID_UNRECOGNIZED_HASH) return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
     if (result === securePassword.INVALID) return console.log('Imma call the cops')
     if (result === securePassword.VALID) return console.log('Yay you made it')
     if (result === securePassword.VALID_NEEDS_REHASH) {
@@ -42,8 +50,8 @@ pwd.hash(userPassword, function (err, hash) {
 ### `var pwd = new SecurePassword(opts)`
 
 Make a new instance of `SecurePassword` which will contain your settings. You
-can view this as a password policy for your application. `opts` currently takes
-two keys `opts.memlimit` and `opts.opslimit`.
+can view this as a password policy for your application. `opts` takes the
+following keys:
 
 ```js
 // Initialise our password policy (these are the defaults)
@@ -64,21 +72,23 @@ as possible. A load time of 1s seems reasonable for login, so test various
 settings in your production environment.
 
 The settings can be easily increased at a later time as hardware most likely
-improves (Moore's law) and adversaries therefore get more powerful. Passwords
-secured by an older policy will still verify just fine, but you will get
-get a special return code signalling that you need to rehash the plaintext
-password according to the updated policy. In contrast to other modules, this
-module will not increase these settings automatically according to some formula
-as this can have ill effects on services that are not carefully monitored.
+improves (Moore's law) and adversaries therefore get more powerful. If a hash is
+attempted verified with weaker parameters than your current settings, you get a
+special return code signalling that you need to rehash the plaintext password
+according to the updated policy. In contrast to other modules, this module will
+not increase these settings automatically as this can have ill effects on
+services that are not carefully monitored.
 
 ### `pwd.hash(password, function (err, hash) {})`
 
-Takes Buffer `password` and hashes it. The hashing is done by a seperate worker
-as to not block the event loop, so normal execution and I/O can continue.
-The callback is invoked with a potential error, or the Buffer `hash`.
+Takes Buffer `password` and hashes it. You can call `cancel` to abort the hashing.
 
-`password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
-`hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
+The hashing is done by a seperate worker as to not block the event loop,
+so normal execution and I/O can continue. The callback is invoked with a
+potential error, or the Buffer `hash`.
+
+* `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
+* `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
 
 ### `var hash = pwd.hashSync(password)`
 
@@ -96,7 +106,7 @@ Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done by a seperate worker as to not block the
 event loop, so normal execution and I/O can continue.
 The callback is invoked with a potential error, or one of the enums
-`SecurePassword.INVALID`, `SecurePassword.VALID` or `SecurePassword.NEEDS_REHASH`.
+`SecurePassword.INVALID`, `SecurePassword.VALID`, `SecurePassword.NEEDS_REHASH` or `SecurePassword.INVALID_UNRECOGNIZED_HASH`.
 Check with strict equality for one the cases as in the example above.
 
 If `enum === SecurePassword.NEEDS_REHASH` you should call `pwd.hash` with
@@ -113,7 +123,7 @@ Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done on the same thread as the event loop,
 therefore normal execution and I/O will be blocked.
 The function may `throw` a potential error, or return one of the enums
-`SecurePassword.VALID`, `SecurePassword.INVALID` or `SecurePassword.NEEDS_REHASH`.
+`SecurePassword.VALID`, `SecurePassword.INVALID`, `SecurePassword.NEEDS_REHASH` or `SecurePassword.INVALID_UNRECOGNIZED_HASH`.
 Check with strict equality for one the cases as in the example above.
 
 ### `SecurePassword.VALID`
@@ -128,6 +138,12 @@ The password was invalid
 
 The password was verified and is valid, but needs to be rehashed with new
 parameters
+
+### `SecurePassword.INVALID_UNRECOGNIZED_HASH`
+
+The hash was unrecognized and therefore could not be verified.
+As an implementation detail it is currently very cheap to attempt verifying
+unrecognized hashes, since this only requires some lightweight pattern matching.
 
 ### `SecurePassword.HASH_BYTES`
 

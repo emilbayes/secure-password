@@ -15,6 +15,7 @@ SecurePassword.OPSLIMIT_MAX = sodium.crypto_pwhash_OPSLIMIT_MAX
 SecurePassword.MEMLIMIT_DEFAULT = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE
 SecurePassword.OPSLIMIT_DEFAULT = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
 
+SecurePassword.INVALID_UNRECOGNIZED_HASH = -1
 SecurePassword.INVALID = 0
 SecurePassword.VALID = 1
 SecurePassword.VALID_NEEDS_REHASH = 2
@@ -74,11 +75,13 @@ SecurePassword.prototype.verifySync = function (passwordBuf, hashBuf) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
+  var parameters = decodeArgon2iStr(hashBuf)
+  if (parameters === false) return SecurePassword.INVALID_UNRECOGNIZED_HASH
+
   if (sodium.crypto_pwhash_str_verify(hashBuf, passwordBuf) === false) {
     return SecurePassword.INVALID
   }
 
-  var parameters = decodeArgon2iStr(hashBuf)
   if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
     return SecurePassword.VALID_NEEDS_REHASH
   }
@@ -95,12 +98,14 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
+  var parameters = decodeArgon2iStr(hashBuf)
+  if (parameters === false) return process.nextTick(cb, null, SecurePassword.INVALID_UNRECOGNIZED_HASH)
+
   sodium.crypto_pwhash_str_verify_async(hashBuf, passwordBuf, function (err, bool) {
     if (err) return cb(err)
 
     if (bool === false) return cb(null, SecurePassword.INVALID)
 
-    var parameters = decodeArgon2iStr(hashBuf)
     if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
       return cb(null, SecurePassword.VALID_NEEDS_REHASH)
     }
@@ -108,6 +113,11 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
     return cb(null, SecurePassword.VALID)
   }.bind(this))
 }
+
+var Argon2iStr_ALG_TAG = Buffer.from('$argon2i')
+var Argon2iStr_VERSION_KEY = Buffer.from('$v=')
+var Argon2iStr_MEMORY_KEY = Buffer.from('$m=')
+var Argon2iStr_TIME_KEY = Buffer.from(',t=')
 
 function decodeArgon2iStr (hash) {
   assert(Buffer.isBuffer(hash), 'Hash must be Buffer')
@@ -122,18 +132,20 @@ function decodeArgon2iStr (hash) {
   // var salt = Buffer.allocUnsafe(sodium.crypto_pwhash_SALTBYTES)
   // var out = Buffer.allocUnsafe(32) // STR_HASHBYTES
 
-  assert(Buffer.from('$argon2i').compare(hash, idx, idx += 8) === 0, 'Hash is missing type')
+  var isArgon2i = Buffer.compare(Argon2iStr_ALG_TAG, hash.slice(idx, idx += 8)) === 0
+  console.log(isArgon2i)
+  if (isArgon2i === false) return false
   type = 'argon2i'
 
-  assert(Buffer.from('$v=').compare(hash, idx, idx += 3) === 0, 'Hash is missing version')
+  assert(Buffer.compare(Argon2iStr_VERSION_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing version')
   version = parseInt(hash.slice(idx, idx = hash.indexOf('$', idx)), 10)
   assert(Number.isSafeInteger(version) && version > 0, 'Hash has invalid version')
 
-  assert(Buffer.from('$m=').compare(hash, idx, idx += 3) === 0, 'Hash is missing memory cost')
+  assert(Buffer.compare(Argon2iStr_MEMORY_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing memory cost')
   memory = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
   assert(Number.isSafeInteger(memory) && memory > 0, 'Hash has invalid memory cost')
 
-  assert(Buffer.from(',t=').compare(hash, idx, idx += 3) === 0, 'Hash is missing time cost')
+  assert(Buffer.compare(Argon2iStr_TIME_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing time cost')
   time = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
   assert(Number.isSafeInteger(time) && time > 0, 'Hash has invalid time cost')
 

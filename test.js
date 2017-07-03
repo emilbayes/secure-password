@@ -131,7 +131,7 @@ test('Needs rehash sync', function (assert) {
 })
 
 test('Needs rehash async', function (assert) {
-  assert.plan(22)
+  assert.plan(27)
   var weakPwd = securePassword({
     memlimit: 1 << 16,
     opslimit: 3
@@ -146,26 +146,29 @@ test('Needs rehash async', function (assert) {
   var wrongPassword = Buffer.from('my secret 2')
 
   weakPwd.hash(userPassword, function (err, weakHash) {
-    assert.error(err)
+    assert.error(err, 'hash not error')
     weakPwd.verify(userPassword, weakHash, function (err, res) {
-      assert.error(err)
-      assert.ok(res === securePassword.VALID)
-      assert.notOk(res === securePassword.INVALID)
-      assert.notOk(res === securePassword.VALID_NEEDS_REHASH)
+      assert.error(err, 'weak right verify not error')
+      assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
+      assert.ok(res === securePassword.VALID, 'weak right valid')
+      assert.notOk(res === securePassword.INVALID, 'weak right not invalid')
+      assert.notOk(res === securePassword.VALID_NEEDS_REHASH, 'weak right not rehash')
     })
 
     weakPwd.verify(wrongPassword, weakHash, function (err, res) {
-      assert.error(err)
-      assert.notOk(res === securePassword.VALID)
-      assert.ok(res === securePassword.INVALID)
-      assert.notOk(res === securePassword.VALID_NEEDS_REHASH)
+      assert.error(err, 'weak wrong verify not valid')
+      assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
+      assert.notOk(res === securePassword.VALID, 'weak wrong not valid')
+      assert.ok(res === securePassword.INVALID, 'weak wrong invalid')
+      assert.notOk(res === securePassword.VALID_NEEDS_REHASH, 'weak wrong not rehash')
     })
 
     betterPwd.verify(userPassword, weakHash, function (err, res) {
-      assert.error(err)
-      assert.notOk(res === securePassword.VALID)
-      assert.notOk(res === securePassword.INVALID)
-      assert.ok(res === securePassword.VALID_NEEDS_REHASH)
+      assert.error(err, 'weak right not error')
+      assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
+      assert.notOk(res === securePassword.VALID, 'weak right not valid')
+      assert.notOk(res === securePassword.INVALID, 'weak right not invald')
+      assert.ok(res === securePassword.VALID_NEEDS_REHASH, 'weak right rehash')
     })
 
     betterPwd.hash(userPassword, function (err, betterHash) {
@@ -173,6 +176,7 @@ test('Needs rehash async', function (assert) {
 
       betterPwd.verify(userPassword, betterHash, function (err, res) {
         assert.error(err)
+        assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH)
         assert.ok(res === securePassword.VALID)
         assert.notOk(res === securePassword.INVALID)
         assert.notOk(res === securePassword.VALID_NEEDS_REHASH)
@@ -180,10 +184,41 @@ test('Needs rehash async', function (assert) {
 
       betterPwd.verify(wrongPassword, betterHash, function (err, res) {
         assert.error(err)
+        assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH)
         assert.notOk(res === securePassword.VALID)
         assert.ok(res === securePassword.INVALID)
         assert.notOk(res === securePassword.VALID_NEEDS_REHASH)
       })
     })
+  })
+})
+
+test('Can handle invalid hash sync', function (assert) {
+  var pwd = securePassword()
+
+  var userPassword = Buffer.from('my secret')
+  var invalidHash = Buffer.allocUnsafe(securePassword.HASH_BYTES)
+
+  var unrecognizedHash = pwd.verifySync(userPassword, invalidHash)
+  assert.ok(unrecognizedHash === securePassword.INVALID_UNRECOGNIZED_HASH)
+  assert.notOk(unrecognizedHash === securePassword.INVALID)
+  assert.notOk(unrecognizedHash === securePassword.VALID)
+  assert.notOk(unrecognizedHash === securePassword.VALID_NEEDS_REHASH)
+  assert.end()
+})
+
+test('Can handle invalid hash async', function (assert) {
+  var pwd = securePassword()
+
+  var userPassword = Buffer.from('my secret')
+  var invalidHash = Buffer.allocUnsafe(securePassword.HASH_BYTES)
+
+  pwd.verify(userPassword, invalidHash, function (err, unrecognizedHash) {
+    assert.error(err)
+    assert.ok(unrecognizedHash === securePassword.INVALID_UNRECOGNIZED_HASH)
+    assert.notOk(unrecognizedHash === securePassword.INVALID)
+    assert.notOk(unrecognizedHash === securePassword.VALID)
+    assert.notOk(unrecognizedHash === securePassword.VALID_NEEDS_REHASH)
+    assert.end()
   })
 })
