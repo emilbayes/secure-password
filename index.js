@@ -1,5 +1,5 @@
 var sodium = require('sodium-universal')
-var assert = require('assert')
+var assert = require('nanoassert')
 
 module.exports = SecurePassword
 SecurePassword.HASH_BYTES = sodium.crypto_pwhash_STRBYTES
