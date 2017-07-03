@@ -1,5 +1,6 @@
 var sodium = require('sodium-universal')
 var assert = require('nanoassert')
+var parallelQueue = require('parallel-queue')
 
 module.exports = SecurePassword
 SecurePassword.HASH_BYTES = sodium.crypto_pwhash_STRBYTES
@@ -35,7 +36,20 @@ function SecurePassword (opts) {
 
   assert(this.opslimit >= SecurePassword.OPSLIMIT_MIN, 'opts.opslimit must be at least OPSLIMIT_MIN (' + SecurePassword.OPSLIMIT_MIN + ')')
   assert(this.opslimit <= SecurePassword.OPSLIMIT_MAX, 'opts.memlimit must be at most OPSLIMIT_MAX (' + SecurePassword.OPSLIMIT_MAX + ')')
+
+  if (opts.parallel == null) this.parallel = 4 // Default UV_THREADPOOL_SIZE
+  else this.parallel = opts.parallel
+
+  assert(this.parallel > 0, 'opts.parallel must be at least 1')
+
+  this._queue = parallelQueue(this.parallel, this._process.bind(this))
 }
+
+Object.defineProperty(SecurePassword.prototype, 'pending', {
+  get: function () {
+    return this._queue.pending
+  }
+})
 
 SecurePassword.prototype.hashSync = function (passwordBuf) {
   assert(Buffer.isBuffer(passwordBuf), 'passwordBuf must be Buffer')
@@ -58,6 +72,10 @@ SecurePassword.prototype.hash = function (passwordBuf, cb) {
   assert(passwordBuf.length < SecurePassword.PASSWORD_BYTES_MAX, 'passwordBuf must be shorter than PASSWORD_BYTES_MAX (' + SecurePassword.PASSWORD_BYTES_MAX + ')')
   assert(typeof cb === 'function', 'cb must be function')
 
+  return this._queue.push({type: 'hash', passwordBuf: passwordBuf}, cb)
+}
+
+SecurePassword.prototype._hash = function (passwordBuf, cb) {
   // Unsafe is okay here since sodium will overwrite all bytes
   var hashBuf = Buffer.allocUnsafe(SecurePassword.HASH_BYTES)
   sodium.crypto_pwhash_str_async(hashBuf, passwordBuf, this.opslimit, this.memlimit, function (err) {
@@ -98,6 +116,12 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
+  return this._queue.push({type: 'verify', passwordBuf: passwordBuf, hashBuf: hashBuf}, cb)
+}
+
+SecurePassword.prototype._verify = function (passwordBuf, hashBuf, cb) {
+  var self = this
+
   var parameters = decodeArgon2iStr(hashBuf)
   if (parameters === false) return process.nextTick(cb, null, SecurePassword.INVALID_UNRECOGNIZED_HASH)
 
@@ -106,12 +130,20 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
 
     if (bool === false) return cb(null, SecurePassword.INVALID)
 
-    if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
+    if (parameters.memlimit < self.memlimit || parameters.opslimit < self.opslimit) {
       return cb(null, SecurePassword.VALID_NEEDS_REHASH)
     }
 
     return cb(null, SecurePassword.VALID)
-  }.bind(this))
+  })
+}
+
+SecurePassword.prototype._process = function (args, done) {
+  switch (args.type) {
+    case 'verify': return this._verify(args.passwordBuf, args.hashBuf, done)
+    case 'hash': return this._hash(args.passwordBuf, done)
+    default: throw new Error('Illegal method type')
+  }
 }
 
 var Argon2iStr_ALG_TAG = Buffer.from('$argon2i')
