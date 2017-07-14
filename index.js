@@ -133,7 +133,6 @@ function decodeArgon2iStr (hash) {
   // var out = Buffer.allocUnsafe(32) // STR_HASHBYTES
 
   var isArgon2i = Buffer.compare(Argon2iStr_ALG_TAG, hash.slice(idx, idx += 8)) === 0
-  console.log(isArgon2i)
   if (isArgon2i === false) return false
   type = 'argon2i'
 
