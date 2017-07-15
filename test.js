@@ -222,3 +222,86 @@ test('Can handle invalid hash async', function (assert) {
     assert.end()
   })
 })
+
+test('Can hash password async simultanious queued', function (assert) {
+  var pwd = securePassword({
+    version: 0,
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT,
+    parallel: 1
+  })
+
+  var userPassword = Buffer.from('my secrets')
+
+  var completed = 0
+  pwd.hash(userPassword, function (err, passwordHash) {
+    assert.error(err)
+    assert.equal(completed, 0)
+    assert.equal(pwd.pending, 1)
+    assert.notOk(userPassword.equals(passwordHash))
+
+    completed++
+  })
+
+  pwd.hash(userPassword, function (err, passwordHash) {
+    assert.error(err)
+    assert.equal(completed, 1)
+    assert.equal(pwd.pending, 0)
+    assert.notOk(userPassword.equals(passwordHash))
+    assert.end()
+  })
+})
+
+test('Can cancel queued hash', function (assert) {
+  assert.plan(3)
+  var pwd = securePassword({
+    version: 0,
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT,
+    parallel: 1
+  })
+
+  var userPassword = Buffer.from('my secrets')
+
+  pwd.hash(userPassword, function (err, passwordHash) {
+    assert.error(err, 'err')
+    assert.notOk(userPassword.equals(passwordHash), 'did hash')
+  })
+
+  // Cancel now
+  setImmediate(pwd.hash(userPassword, function (err, passwordHash) {
+    assert.ok(err, 'has err')
+  }))
+})
+
+test('Can interleave cancel queued hash', function (assert) {
+  assert.plan(6)
+  var pwd = securePassword({
+    version: 0,
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT,
+    parallel: 1
+  })
+
+  var userPassword = Buffer.from('my secrets')
+
+  pwd.hash(userPassword, function (err, passwordHash) {
+    assert.error(err, 'err')
+    assert.notOk(userPassword.equals(passwordHash), 'did hash')
+
+    pwd.verify(userPassword, passwordHash, function (err, res) {
+      assert.error(err)
+      assert.ok(res === securePassword.VALID)
+    })
+
+    // Cancel now
+    setImmediate(pwd.verify(userPassword, passwordHash, function (err, res) {
+      assert.ok(err, 'has err')
+    }))
+  })
+
+  // Cancel now
+  setImmediate(pwd.hash(userPassword, function (err, passwordHash) {
+    assert.ok(err, 'has err')
+  }))
+})

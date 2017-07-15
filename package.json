@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "nanoassert": "^1.0.0",
+    "parallel-queue": "^1.0.0",
     "sodium-universal": "^1.0.0"
   },
   "devDependencies": {

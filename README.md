@@ -8,6 +8,7 @@
 
 - State of the art password hashing algorithm (Argon2i)
 - Safe defaults for most applications
+- Transparent queuing to prevent resource exhaustion
 - Future-proof so work factors and hashing algorithms can be easily upgraded
 - `Buffers` everywhere for safer memory management
 
@@ -57,19 +58,31 @@ following keys:
 // Initialise our password policy (these are the defaults)
 var pwd = securePassword({
   memlimit: securePassword.MEMLIMIT_DEFAULT,
-  opslimit: securePassword.OPSLIMIT_DEFAULT
+  opslimit: securePassword.OPSLIMIT_DEFAULT,
+  parallel: 4
 })
 ```
 
-They're both constrained by the constants `SecurePassword.MEMLIMIT_MIN` -
- `SecurePassword.MEMLIMIT_MAX` and
-`SecurePassword.OPSLIMIT_MIN` - `SecurePassword.OPSLIMIT_MAX`. If not provided
-they will be given the default values `SecurePassword.MEMLIMIT_DEFAULT` and
-`SecurePassword.OPSLIMIT_DEFAULT` which should be fast enough for a general
-purpose web server without your users noticing too much of a load time. However
-your should set these as high as possible to make any kind of cracking as costly
-as possible. A load time of 1s seems reasonable for login, so test various
-settings in your production environment.
+* `opts.memlimit` controls how many bytes can be used for each password. It must
+  be a value between `SecurePassword.MEMLIMIT_MIN` - `SecurePassword.MEMLIMIT_MAX`
+* `opts.opslimit` can be viewed as how many passes are done over the memory. It
+  must be a value between `SecurePassword.OPSLIMIT_MIN` -
+  `SecurePassword.OPSLIMIT_MAX`.
+* `opts.parallel` controls how many simultaneous calls to `hash` or `verify` can
+  be run, as to prevent your server from running out of memory.
+
+  It will default to `4`, which is the current number of worker threads available
+  to Node.js. If you increase this value, you should also set `UV_THREADPOOL_SIZE`
+  to the same value or more, as this environment variable determines the number
+  of workers available to Node.js. This is done at startup, like this:
+
+  ```sh
+  UV_THREADPOOL_SIZE=8 node index.js
+  ```
+
+All these options should be set as high as you can afford. Take into account the
+resources you have available on your production machines, and adjust
+accordingly.
 
 The settings can be easily increased at a later time as hardware most likely
 improves (Moore's law) and adversaries therefore get more powerful. If a hash is
@@ -79,7 +92,7 @@ according to the updated policy. In contrast to other modules, this module will
 not increase these settings automatically as this can have ill effects on
 services that are not carefully monitored.
 
-### `pwd.hash(password, function (err, hash) {})`
+### `var cancel = pwd.hash(password, function (err, hash) {})`
 
 Takes Buffer `password` and hashes it. You can call `cancel` to abort the hashing.
 
@@ -89,6 +102,8 @@ potential error, or the Buffer `hash`.
 
 * `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
 * `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
+* `cancel` is a method that will abort the hashing, if it has not yet started,
+and invoke `cb` with and error that has `err.cancelled === true`
 
 ### `var hash = pwd.hashSync(password)`
 
@@ -100,7 +115,7 @@ the Buffer `hash`.
 `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
 `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
 
-### `pwd.verify(password, hash, function (err, enum) {})`
+### `var cancel = pwd.verify(password, hash, function (err, enum) {})`
 
 Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done by a seperate worker as to not block the
@@ -125,6 +140,15 @@ therefore normal execution and I/O will be blocked.
 The function may `throw` a potential error, or return one of the enums
 `SecurePassword.VALID`, `SecurePassword.INVALID`, `SecurePassword.NEEDS_REHASH` or `SecurePassword.INVALID_UNRECOGNIZED_HASH`.
 Check with strict equality for one the cases as in the example above.
+
+### `pwd.pending`
+
+Number of hash / verify tasks pending.
+
+### `pwd.parallel`
+
+Number of hash / verify tasks that can be processed simultaneously. Can be set
+through the constructor, but is **read-only**.
 
 ### `SecurePassword.VALID`
 
