@@ -1,6 +1,6 @@
 {
   "name": "secure-password",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Making Password storage safer for all",
   "main": "index.js",
   "dependencies": {
