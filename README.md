@@ -6,7 +6,7 @@
 
 ## Features
 
-- State of the art password hashing algorithm (Argon2i)
+- State of the art password hashing algorithm (Argon2id)
 - Safe defaults for most applications
 - Future-proof so work factors and hashing algorithms can be easily upgraded
 - `Buffers` everywhere for safer memory management
