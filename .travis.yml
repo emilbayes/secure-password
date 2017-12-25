@@ -2,12 +2,10 @@ notifications:
   email: false
 language: node_js
 node_js:
-- 4
-- 6
-- 7
-- 8
-- 9
 - node
+- 8
+- 6
+- 4
 deploy:
   provider: npm
   email: github@tixz.dk
