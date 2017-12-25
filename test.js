@@ -88,12 +88,17 @@ test('Can verify password (identity) async', function (assert) {
 
 test('Needs rehash sync', function (assert) {
   var weakPwd = securePassword({
-    memlimit: 1 << 16,
-    opslimit: 3
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
   })
 
   var userPassword = Buffer.from('my secret')
   var wrongPassword = Buffer.from('my secret 2')
+  var pass = Buffer.from('hello world')
+  var empty = Buffer.from('')
+  var argon2ipass = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkYnB2R2dVNjR1Q3h4TlF2aWYrd2Z3QSR3cXlWL1EvWi9UaDhVNUlaeEFBN0RWYjJVMWtLSG01VHhLOWE2QVlkOUlVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
+  var argon2ipassempty = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkN3dZV0EvbjBHQjRpa3lwSWN5UVh6USRCbjd6TnNrcW03aWNwVGNjNGl6WC9xa0liNUZBQnZVNGw2MUVCaTVtaWFZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
+
 
   var weakHash = weakPwd.hashSync(userPassword)
   var weakValid = weakPwd.verifySync(userPassword, weakHash)
@@ -107,8 +112,8 @@ test('Needs rehash sync', function (assert) {
   assert.notOk(weakInvalid === securePassword.VALID_NEEDS_REHASH)
 
   var betterPwd = securePassword({
-    memlimit: 1 << 17,
-    opslimit: 4
+    memlimit: securePassword.MEMLIMIT_DEFAULT + 1024,
+    opslimit: securePassword.OPSLIMIT_DEFAULT + 1
   })
 
   var rehashValid = betterPwd.verifySync(userPassword, weakHash)
@@ -116,6 +121,18 @@ test('Needs rehash sync', function (assert) {
   assert.notOk(rehashValid === securePassword.VALID)
   assert.notOk(rehashValid === securePassword.INVALID)
   assert.ok(rehashValid === securePassword.VALID_NEEDS_REHASH)
+
+  var rehashValidAlgo = betterPwd.verifySync(pass, argon2ipass)
+
+  assert.notOk(rehashValidAlgo === securePassword.VALID)
+  assert.notOk(rehashValidAlgo === securePassword.INVALID)
+  assert.ok(rehashValidAlgo === securePassword.VALID_NEEDS_REHASH)
+
+  var rehashValidAlgoEmpty = betterPwd.verifySync(empty, argon2ipassempty)
+
+  assert.notOk(rehashValidAlgoEmpty === securePassword.VALID)
+  assert.notOk(rehashValidAlgoEmpty === securePassword.INVALID)
+  assert.ok(rehashValidAlgoEmpty === securePassword.VALID_NEEDS_REHASH)
 
   var betterHash = betterPwd.hashSync(userPassword)
   var betterValid = betterPwd.verifySync(userPassword, betterHash)
@@ -131,19 +148,23 @@ test('Needs rehash sync', function (assert) {
 })
 
 test('Needs rehash async', function (assert) {
-  assert.plan(27)
+  assert.plan(37)
   var weakPwd = securePassword({
-    memlimit: 1 << 16,
-    opslimit: 3
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
   })
 
   var betterPwd = securePassword({
-    memlimit: 1 << 17,
-    opslimit: 4
+    memlimit: securePassword.MEMLIMIT_DEFAULT + 1024,
+    opslimit: securePassword.OPSLIMIT_DEFAULT + 1
   })
 
   var userPassword = Buffer.from('my secret')
   var wrongPassword = Buffer.from('my secret 2')
+  var pass = Buffer.from('hello world')
+  var empty = Buffer.from('')
+  var argon2ipass = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkYnB2R2dVNjR1Q3h4TlF2aWYrd2Z3QSR3cXlWL1EvWi9UaDhVNUlaeEFBN0RWYjJVMWtLSG01VHhLOWE2QVlkOUlVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
+  var argon2ipassempty = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkN3dZV0EvbjBHQjRpa3lwSWN5UVh6USRCbjd6TnNrcW03aWNwVGNjNGl6WC9xa0liNUZBQnZVNGw2MUVCaTVtaWFZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
 
   weakPwd.hash(userPassword, function (err, weakHash) {
     assert.error(err, 'hash not error')
@@ -164,6 +185,22 @@ test('Needs rehash async', function (assert) {
     })
 
     betterPwd.verify(userPassword, weakHash, function (err, res) {
+      assert.error(err, 'weak right not error')
+      assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
+      assert.notOk(res === securePassword.VALID, 'weak right not valid')
+      assert.notOk(res === securePassword.INVALID, 'weak right not invald')
+      assert.ok(res === securePassword.VALID_NEEDS_REHASH, 'weak right rehash')
+    })
+
+    weakPwd.verify(pass, argon2ipass, function (err, res) {
+      assert.error(err, 'weak right not error')
+      assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
+      assert.notOk(res === securePassword.VALID, 'weak right not valid')
+      assert.notOk(res === securePassword.INVALID, 'weak right not invald')
+      assert.ok(res === securePassword.VALID_NEEDS_REHASH, 'weak right rehash')
+    })
+
+    weakPwd.verify(empty, argon2ipassempty, function (err, res) {
       assert.error(err, 'weak right not error')
       assert.notOk(res === securePassword.INVALID_UNRECOGNIZED_HASH, 'weak not right unrecognized')
       assert.notOk(res === securePassword.VALID, 'weak right not valid')

@@ -75,14 +75,13 @@ SecurePassword.prototype.verifySync = function (passwordBuf, hashBuf) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
-  var parameters = decodeArgon2iStr(hashBuf)
-  if (parameters === false) return SecurePassword.INVALID_UNRECOGNIZED_HASH
+  if (recognizedAlgorithm(hashBuf) === false) return SecurePassword.INVALID_UNRECOGNIZED_HASH
 
   if (sodium.crypto_pwhash_str_verify(hashBuf, passwordBuf) === false) {
     return SecurePassword.INVALID
   }
 
-  if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
+  if (sodium.crypto_pwhash_str_needs_rehash(hashBuf, this.opslimit, this.memlimit)) {
     return SecurePassword.VALID_NEEDS_REHASH
   }
 
@@ -98,15 +97,14 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
   assert(Buffer.isBuffer(hashBuf), 'hashBuf must be Buffer')
   assert(hashBuf.length === SecurePassword.HASH_BYTES, 'hashBuf must be HASH_BYTES (' + SecurePassword.HASH_BYTES + ')')
 
-  var parameters = decodeArgon2iStr(hashBuf)
-  if (parameters === false) return process.nextTick(cb, null, SecurePassword.INVALID_UNRECOGNIZED_HASH)
+  if (recognizedAlgorithm(hashBuf) === false) return process.nextTick(cb, null, SecurePassword.INVALID_UNRECOGNIZED_HASH)
 
   sodium.crypto_pwhash_str_verify_async(hashBuf, passwordBuf, function (err, bool) {
     if (err) return cb(err)
 
     if (bool === false) return cb(null, SecurePassword.INVALID)
 
-    if (parameters.memlimit < this.memlimit || parameters.opslimit < this.opslimit) {
+    if (sodium.crypto_pwhash_str_needs_rehash(hashBuf, this.opslimit, this.memlimit)) {
       return cb(null, SecurePassword.VALID_NEEDS_REHASH)
     }
 
@@ -114,52 +112,6 @@ SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
   }.bind(this))
 }
 
-var Argon2iStr_ALG_TAG = Buffer.from('$argon2i')
-var Argon2iStr_VERSION_KEY = Buffer.from('$v=')
-var Argon2iStr_MEMORY_KEY = Buffer.from('$m=')
-var Argon2iStr_TIME_KEY = Buffer.from(',t=')
-
-function decodeArgon2iStr (hash) {
-  assert(Buffer.isBuffer(hash), 'Hash must be Buffer')
-  var idx = 0
-
-  var type = ''
-  var version = -1
-  var memory = -1
-  var time = -1
-  // var lanes = -1
-  // var threads = lanes
-  // var salt = Buffer.allocUnsafe(sodium.crypto_pwhash_SALTBYTES)
-  // var out = Buffer.allocUnsafe(32) // STR_HASHBYTES
-
-  var isArgon2i = Buffer.compare(Argon2iStr_ALG_TAG, hash.slice(idx, idx += 8)) === 0
-  if (isArgon2i === false) return false
-  type = 'argon2i'
-
-  assert(Buffer.compare(Argon2iStr_VERSION_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing version')
-  version = parseInt(hash.slice(idx, idx = hash.indexOf('$', idx)), 10)
-  assert(Number.isSafeInteger(version) && version > 0, 'Hash has invalid version')
-
-  assert(Buffer.compare(Argon2iStr_MEMORY_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing memory cost')
-  memory = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
-  assert(Number.isSafeInteger(memory) && memory > 0, 'Hash has invalid memory cost')
-
-  assert(Buffer.compare(Argon2iStr_TIME_KEY, hash.slice(idx, idx += 3)) === 0, 'Hash is missing time cost')
-  time = parseInt(hash.slice(idx, idx = hash.indexOf(',', idx)), 10)
-  assert(Number.isSafeInteger(time) && time > 0, 'Hash has invalid time cost')
-
-  // assert(Buffer.from(',p=').compare(hash, idx, idx += 3) === 0, 'Hash is missing lanes')
-  // lanes = parseInt(hash.slice(idx, idx = hash.indexOf('$', idx)), 10)
-  // threads = lanes
-  // idx++
-  // assert(hash.indexOf('$', idx + 1) - idx === Math.ceil(salt.length * 8 / 6), 'Hash is containing salt of incorrect length')
-  // // Needs to figure out how to read base64 block by block
-  // salt.write(hash.slice(idx, idx = hash.indexOf('$', idx)), 0, 'base64')
-
-  return {
-    memlimit: memory << 10,
-    opslimit: time,
-    algo: type,
-    version: version
-  }
+function recognizedAlgorithm (hashBuf) {
+  return hashBuf.indexOf('$argon2i$') > -1 || hashBuf.indexOf('$argon2id$') > -1
 }
