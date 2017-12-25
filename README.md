@@ -105,7 +105,7 @@ the Buffer `hash`.
 Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done by a seperate worker as to not block the
 event loop, so normal execution and I/O can continue.
-The callback is invoked with a potential error, or one of the enums
+The callback is invoked with a potential error, or one of the symbols
 `SecurePassword.INVALID`, `SecurePassword.VALID`, `SecurePassword.NEEDS_REHASH` or `SecurePassword.INVALID_UNRECOGNIZED_HASH`.
 Check with strict equality for one the cases as in the example above.
 
@@ -122,7 +122,7 @@ makes your server do unnecessary work.
 Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done on the same thread as the event loop,
 therefore normal execution and I/O will be blocked.
-The function may `throw` a potential error, or return one of the enums
+The function may `throw` a potential error, or return one of the symbols
 `SecurePassword.VALID`, `SecurePassword.INVALID`, `SecurePassword.NEEDS_REHASH` or `SecurePassword.INVALID_UNRECOGNIZED_HASH`.
 Check with strict equality for one the cases as in the example above.
 
