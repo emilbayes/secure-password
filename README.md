@@ -1,7 +1,6 @@
 # `secure-password`
 
 [![Build Status](https://travis-ci.org/emilbayes/secure-password.svg?branch=master)](https://travis-ci.org/emilbayes/secure-password)
-
 [![Build status](https://ci.appveyor.com/api/projects/status/a1atq7xypwf3ebfc/branch/master?svg=true)](https://ci.appveyor.com/project/emilbayes/secure-password/branch/master)
 
 > Making Password storage safer for all
