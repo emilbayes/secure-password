@@ -1,8 +1,0 @@
-{
-  "name": "terraformer-wkt-parser",
-  "main": "terraformer-wkt-parser.min.js",
-  "ignore"        : ["versions", "spec", "examples", "test"],
-  "dependencies": {
-    "terraformer": "~1.0.5"
-  }
-}

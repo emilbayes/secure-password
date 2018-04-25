@@ -1,8 +1,0 @@
-{
-  "name": "terraformer-wkt-parser",
-  "main": "terraformer-wkt-parser.d.ts",
-  "dependencies": {},
-  "globalDependencies": {
-    "geojson": "registry:dt/geojson#0.0.0+20160619034323"
-  }
-}
