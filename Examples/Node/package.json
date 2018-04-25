@@ -1,0 +1,24 @@
+{
+  "name": "node-auth-example",
+  "version": "1.0.0",
+  "description": "Example of using secure-password with node & express & sequelize",
+  "main": "index.js",
+  "scripts": {
+    "boot": "sequelize db:migrate && npm start",
+    "start": "node src/server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luis Padron",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "compression": "^1.7.2",
+    "express": "^4.16.3",
+    "morgan": "^1.9.0",
+    "pg": "^7.4.1",
+    "pg-hstore": "^2.3.2",
+    "secure-password": "^3.0.0",
+    "sequelize": "^4.37.6",
+    "sequelize-cli": "^4.0.0"
+  }
+}
