@@ -4,6 +4,8 @@
   "description": "Example of using secure-password with node & express & sequelize",
   "main": "index.js",
   "scripts": {
+    "boot": "sequelize db:migrate && npm start",
+    "start": "node src/server/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Luis Padron",

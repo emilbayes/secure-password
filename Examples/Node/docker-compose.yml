@@ -1,0 +1,23 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: example
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: example_db
+  lofti:
+    build: .
+    volumes:
+      - .:/home/app/example
+    ports:
+      - '8000:8000'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://example:password@postgres/example_db
+    depends_on:
+      - postgres
+    command: ["npm", "run", "boot"]
+

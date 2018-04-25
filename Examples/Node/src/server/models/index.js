@@ -8,6 +8,10 @@ const basename = path.basename(module.filename)
 
 const db = {}
 
+/**
+* NOTE: The DATABASE_URL environment is set in the `docker-compose.yml` file
+* This tells sequelize where to set up the connection for the PostgreSQL database
+*/
 const sequelize = new Sequelize(process.env.DATABASE_URL, { dialect: 'postgres' })
 
 fs

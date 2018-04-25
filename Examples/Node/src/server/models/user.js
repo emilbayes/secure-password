@@ -1,5 +1,4 @@
-const securePassword = require('secure-password')
-const pwd = securePassword()
+const { hash, verify } = require('../utils/passwordHelper')
 
 const UserModel = (sequelize, DataTypes) => {
   // User model
@@ -45,7 +44,6 @@ const UserModel = (sequelize, DataTypes) => {
 
   // Hash password before creating user
   User.beforeCreate(user => hash(user.password).then((hashedPass) => {
-    // eslint-disable-next-line no-param-reassign
     user.password = hashedPass
   }))
 
@@ -55,6 +53,7 @@ const UserModel = (sequelize, DataTypes) => {
     delete JSON.password
     return JSON
   }
+
 
   /**
    * ASYNC
