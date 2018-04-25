@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: example
       POSTGRES_PASSWORD: password
       POSTGRES_DB: example_db
-  lofti:
+  web:
     build: .
     volumes:
       - .:/home/app/example
