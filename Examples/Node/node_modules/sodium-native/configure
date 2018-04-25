@@ -1,0 +1,5 @@
+#!/bin/sh
+cd libsodium
+! [ -f autogen.sh ] && echo 'You need to run "npm run fetch-libsodium" first' && exit 1
+./autogen.sh
+./configure "$@"
