@@ -53,6 +53,20 @@ SecurePassword.prototype.hashSync = function (passwordBuf) {
 }
 
 SecurePassword.prototype.hash = function (passwordBuf, cb) {
+  // support promises
+  if (cb === undefined) {
+    return new Promise((resolve, reject) => {
+      this.hash(passwordBuf, function (err, hashBuf) {
+        if (err) {
+          reject(err)
+          return
+        }
+
+        resolve(hashBuf)
+      })
+    })
+  }
+
   assert(Buffer.isBuffer(passwordBuf), 'passwordBuf must be Buffer')
   assert(passwordBuf.length >= SecurePassword.PASSWORD_BYTES_MIN, 'passwordBuf must be at least PASSWORD_BYTES_MIN (' + SecurePassword.PASSWORD_BYTES_MIN + ')')
   assert(passwordBuf.length < SecurePassword.PASSWORD_BYTES_MAX, 'passwordBuf must be shorter than PASSWORD_BYTES_MAX (' + SecurePassword.PASSWORD_BYTES_MAX + ')')
@@ -89,6 +103,20 @@ SecurePassword.prototype.verifySync = function (passwordBuf, hashBuf) {
 }
 
 SecurePassword.prototype.verify = function (passwordBuf, hashBuf, cb) {
+  // support promises
+  if (cb === undefined) {
+    return new Promise((resolve, reject) => {
+      this.verify(passwordBuf, hashBuf, function (err, bool) {
+        if (err) {
+          reject(err)
+          return
+        }
+
+        resolve(bool)
+      })
+    })
+  }
+
   assert(Buffer.isBuffer(passwordBuf), 'passwordBuf must be Buffer')
   assert(passwordBuf.length >= SecurePassword.PASSWORD_BYTES_MIN, 'passwordBuf must be at least PASSWORD_BYTES_MIN (' + SecurePassword.PASSWORD_BYTES_MIN + ')')
   assert(passwordBuf.length < SecurePassword.PASSWORD_BYTES_MAX, 'passwordBuf must be shorter than PASSWORD_BYTES_MAX (' + SecurePassword.PASSWORD_BYTES_MAX + ')')

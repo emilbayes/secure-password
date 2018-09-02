@@ -31,6 +31,21 @@ test('Can hash password async', function (assert) {
   })
 })
 
+test('Can hash password using promises', function (assert) {
+  var pwd = securePassword({
+    version: 0,
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
+  })
+
+  var userPassword = Buffer.from('my secrets')
+
+  pwd.hash(userPassword).then(function (passwordHash) {
+    assert.notOk(userPassword.equals(passwordHash))
+    assert.end()
+  })
+})
+
 test('Can hash password async simultanious', function (assert) {
   assert.plan(4)
   var pwd = securePassword({
@@ -84,6 +99,26 @@ test('Can verify password (identity) async', function (assert) {
       assert.end()
     })
   })
+})
+
+test('Can verify password (identity) using promises', function (assert) {
+  var pwd = securePassword({
+    version: 0,
+    memlimit: securePassword.MEMLIMIT_DEFAULT,
+    opslimit: securePassword.OPSLIMIT_DEFAULT
+  })
+
+  var userPassword = Buffer.from('my secret')
+
+  pwd
+    .hash(userPassword)
+    .then(function (passwordHash) {
+      return pwd.verify(userPassword, passwordHash)
+    })
+    .then(function (bool) {
+      assert.ok(bool === securePassword.VALID)
+      assert.end()
+    })
 })
 
 test('Needs rehash sync', function (assert) {

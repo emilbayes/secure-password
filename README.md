@@ -46,6 +46,42 @@ pwd.hash(userPassword, function (err, hash) {
 })
 ```
 
+or with async await:
+
+
+```js
+const securePassword = require('secure-password')
+
+// Initialise our password policy
+const pwd = securePassword()
+
+const userPassword = Buffer.from('my secret password')
+
+async function run () {
+  // Register user
+  const hash = await pwd.hash(userPassword)
+
+  // Save hash somewhere
+  const result = await pwd.verify(userPassword, hash)
+
+  if (result === securePassword.INVALID_UNRECOGNIZED_HASH) return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
+  if (result === securePassword.INVALID) return console.log('Imma call the cops')
+  if (result === securePassword.VALID) return console.log('Yay you made it')
+  if (result === securePassword.VALID_NEEDS_REHASH) {
+    console.log('Yay you made it, wait for us to improve your safety')
+
+    try {
+      const improvedHash = await pwd.hash(userPassword, function (err, improvedHash) {
+      // Save improvedHash somewhere
+    } catch (err)
+      console.error('You are authenticated, but we could not improve your safety this time around')
+    }
+  }
+}
+
+run()
+```
+
 ## API
 
 ### `var pwd = new SecurePassword(opts)`
@@ -80,7 +116,7 @@ according to the updated policy. In contrast to other modules, this module will
 not increase these settings automatically as this can have ill effects on
 services that are not carefully monitored.
 
-### `pwd.hash(password, function (err, hash) {})`
+### `pwd.hash(password, [function (err, hash) {}])`
 
 Takes Buffer `password` and hashes it. You can call `cancel` to abort the hashing.
 
@@ -90,6 +126,8 @@ potential error, or the Buffer `hash`.
 
 * `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
 * `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
+
+If a callback is not specified, a `Promise` is returned.
 
 ### `var hash = pwd.hashSync(password)`
 
@@ -101,7 +139,7 @@ the Buffer `hash`.
 `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
 `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
 
-### `pwd.verify(password, hash, function (err, enum) {})`
+### `pwd.verify(password, hash, [function (err, enum) {}])`
 
 Takes Buffer `password` and hashes it and then safely compares it to the
 Buffer `hash`. The hashing is done by a seperate worker as to not block the
@@ -117,6 +155,8 @@ makes your server do unnecessary work.
 
 `password` must be a Buffer of length `SecurePassword.PASSWORD_BYTES_MIN` - `SecurePassword.PASSWORD_BYTES_MAX`.  
 `hash` will be a Buffer of length `SecurePassword.HASH_BYTES`.
+
+If a callback is not specified, a `Promise` is returned.
 
 ### `var enum = pwd.verifySync(password, hash)`
 
