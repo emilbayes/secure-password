@@ -43,7 +43,7 @@ test('Can hash password using promises', function (assert) {
   pwd.hash(userPassword).then(function (passwordHash) {
     assert.notOk(userPassword.equals(passwordHash))
     assert.end()
-  })
+  }, assert.error)
 })
 
 test('Can hash password async simultanious', function (assert) {
@@ -119,6 +119,7 @@ test('Can verify password (identity) using promises', function (assert) {
       assert.ok(bool === securePassword.VALID)
       assert.end()
     })
+    .catch(assert.error)
 })
 
 test('Needs rehash sync', function (assert) {
@@ -133,7 +134,6 @@ test('Needs rehash sync', function (assert) {
   var empty = Buffer.from('')
   var argon2ipass = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkYnB2R2dVNjR1Q3h4TlF2aWYrd2Z3QSR3cXlWL1EvWi9UaDhVNUlaeEFBN0RWYjJVMWtLSG01VHhLOWE2QVlkOUlVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
   var argon2ipassempty = Buffer.from('JGFyZ29uMmkkdj0xOSRtPTMyNzY4LHQ9NCxwPTEkN3dZV0EvbjBHQjRpa3lwSWN5UVh6USRCbjd6TnNrcW03aWNwVGNjNGl6WC9xa0liNUZBQnZVNGw2MUVCaTVtaWFZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', 'base64')
-
 
   var weakHash = weakPwd.hashSync(userPassword)
   var weakValid = weakPwd.verifySync(userPassword, weakHash)
