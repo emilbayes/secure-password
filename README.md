@@ -29,18 +29,23 @@ pwd.hash(userPassword, function (err, hash) {
   // Save hash somewhere
   pwd.verify(userPassword, hash, function (err, result) {
     if (err) throw err
+    
+    switch (result) {
+      case securePassword.INVALID_UNRECOGNIZED_HASH:
+        return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
+      case securePassword.INVALID:
+        return console.log('Invalid password')
+      case securePassword.VALID:
+        return console.log('Authenticated')
+      case securePassword.VALID_NEEDS_REHASH:
+        console.log('Yay you made it, wait for us to improve your safety')
 
-    if (result === securePassword.INVALID_UNRECOGNIZED_HASH) return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
-    if (result === securePassword.INVALID) return console.log('Imma call the cops')
-    if (result === securePassword.VALID) return console.log('Yay you made it')
-    if (result === securePassword.VALID_NEEDS_REHASH) {
-      console.log('Yay you made it, wait for us to improve your safety')
+        pwd.hash(userPassword, function (err, improvedHash) {
+          if (err) console.error('You are authenticated, but we could not improve your safety this time around')
 
-      pwd.hash(userPassword, function (err, improvedHash) {
-        if (err) console.error('You are authenticated, but we could not improve your safety this time around')
-
-        // Save improvedHash somewhere
-      })
+          // Save improvedHash somewhere
+        })
+        break
     }
   })
 })
@@ -63,19 +68,24 @@ async function run () {
 
   // Save hash somewhere
   const result = await pwd.verify(userPassword, hash)
+  
+  switch (result) {
+    case securePassword.INVALID_UNRECOGNIZED_HASH:
+      return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
+    case securePassword.INVALID:
+      return console.log('Invalid password')
+    case securePassword.VALID:
+      return console.log('Authenticated')
+    case securePassword.VALID_NEEDS_REHASH:
+      console.log('Yay you made it, wait for us to improve your safety')
 
-  if (result === securePassword.INVALID_UNRECOGNIZED_HASH) return console.error('This hash was not made with secure-password. Attempt legacy algorithm')
-  if (result === securePassword.INVALID) return console.log('Imma call the cops')
-  if (result === securePassword.VALID) return console.log('Yay you made it')
-  if (result === securePassword.VALID_NEEDS_REHASH) {
-    console.log('Yay you made it, wait for us to improve your safety')
-
-    try {
-      const improvedHash = await pwd.hash(userPassword, function (err, improvedHash) {
-      // Save improvedHash somewhere
-    } catch (err)
-      console.error('You are authenticated, but we could not improve your safety this time around')
-    }
+      try {
+        const improvedHash = await pwd.hash(userPassword)
+        // Save improvedHash somewhere
+      } catch (err)
+        console.error('You are authenticated, but we could not improve your safety this time around')
+      }
+      break
   }
 }
 
