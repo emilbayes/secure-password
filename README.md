@@ -15,12 +15,14 @@
 ## Usage
 
 ```js
+var crypto = require( 'crypto' )
 var securePassword = require('secure-password')
 
 // Initialise our password policy
 var pwd = securePassword()
 
-var userPassword = Buffer.from('my secret password')
+var salt = crypto.randomBytes( 8 ).toString( 'base64' )
+var userPassword = Buffer.from(salt + 'my secret password')
 
 // Register user
 pwd.hash(userPassword, function (err, hash) {
@@ -55,12 +57,14 @@ or with async await:
 
 
 ```js
+const crypto = require( 'crypto' )
 const securePassword = require('secure-password')
 
 // Initialise our password policy
 const pwd = securePassword()
 
-const userPassword = Buffer.from('my secret password')
+const salt = crypto.randomBytes( 8 ).toString( 'base64' )
+const userPassword = Buffer.from(salt + 'my secret password')
 
 async function run () {
   // Register user
@@ -91,6 +95,9 @@ async function run () {
 
 run()
 ```
+
+NOTE: make sure to store the salt value along with the hashed password so you
+can verify their password the next time they return.
 
 ## API
 
