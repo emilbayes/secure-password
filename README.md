@@ -82,7 +82,7 @@ async function run () {
       try {
         const improvedHash = await pwd.hash(userPassword)
         // Save improvedHash somewhere
-      } catch (err)
+      } catch (err) {
         console.error('You are authenticated, but we could not improve your safety this time around')
       }
       break
